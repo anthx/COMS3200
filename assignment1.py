@@ -55,12 +55,16 @@ def gmt_aest(time_str: str) -> str:
 
 
 def main():
-    url = input("URL to Retrieve: ")
-    request_process(url)
+    print("HTTP Protocol Analyzer, Written by Anthony Carrick, #########")
+    if sys.argv[1]:
+        url = sys.argv[1]
+    else:
+        url = input("URL to Retrieve: ")
+    reply_code = -1
+    while reply_code in {301, -1}:
+        reply_code, url = request_process(url)
 
-
-def request_process(url: str) -> int:
-    url = "www.google.com.au"
+def request_process(url: str) -> (int, str):
     host = ""
     port = 80
     host_path = process_url(url)
@@ -75,6 +79,7 @@ def request_process(url: str) -> int:
     last_modified = 0
     content_encoding = ""
     conn = 0
+    moved_to = ""
     try:
         conn = socket.socket()
         conn.connect(address)
@@ -102,6 +107,8 @@ def request_process(url: str) -> int:
                 last_modified = gmt_aest(line[15:])
             if line.startswith("Content-Encoding: "):
                 content_encoding = line[18:]
+            if line.startswith("Location: "):
+                moved_to = line[10:]
 
         reply_code, reply_code_meaning = http_return_code(reply.decode())
 
@@ -109,7 +116,7 @@ def request_process(url: str) -> int:
         # date = request_date(reply.decode())
         # last_modified = request_last_modified(reply.decode())
         output = f"""
-        HTTP Protocol Analyzer, Written by Anthony Carrick, #########
+        
         URL Requested: {url} 
         IP Address, # Port of the Server:  {server_ip} , {server_port} 
         IP Address # Port of this Client:  {client_ip} , {client_port} 
@@ -118,7 +125,7 @@ def request_process(url: str) -> int:
         Date: {date} (please convert times to AEST if they are in GMT, otherwise leave them as they are) 
         Last-Modified: {last_modified} similar format  (if appropriate to the response) 
         Content-Encoding:  {content_encoding}
-        Moved to:      (if appropriate to the response) 
+        Moved to: {moved_to} 
         """
 
         print(output)
@@ -131,7 +138,7 @@ def request_process(url: str) -> int:
         sys.exit()
     finally:
         conn.close()
-        return reply_code
+        return reply_code, moved_to
 
 
 if __name__ == '__main__':
