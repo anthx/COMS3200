@@ -56,13 +56,14 @@ def gmt_aest(time_str: str) -> str:
 
 def main():
     print("HTTP Protocol Analyzer, Written by Anthony Carrick, #########")
-    if sys.argv[1]:
+    if len(sys.argv) > 1:
         url = sys.argv[1]
     else:
         url = input("URL to Retrieve: ")
     reply_code = -1
-    while reply_code in {301, -1}:
+    while reply_code in {301, 302, -1}:
         reply_code, url = request_process(url)
+
 
 def request_process(url: str) -> (int, str):
     host = ""
@@ -84,8 +85,8 @@ def request_process(url: str) -> (int, str):
         conn = socket.socket()
         conn.connect(address)
         data = bytes(
-            f"GET {host_path[1]} HTTP/1.0\r\n\r\n"
-            f"Host {host_path[0]}\r\n", "utf-8")
+            f"HEAD {host_path[1]} HTTP/1.0\r\n"
+            f"Host {host_path[0]}\r\n\r\n", "utf-8")
         print(data)
         try:
             conn.sendall(data)
@@ -94,8 +95,8 @@ def request_process(url: str) -> (int, str):
             conn.close()
             sys.exit()
 
-        conn.sendall(data)
-        reply = conn.recv(16384)
+        # conn.sendall(data)
+        reply = conn.recv(4096)
         print(reply.decode())
         client_ip, client_port = conn.getsockname()
         server_ip, server_port = conn.getpeername()
@@ -105,8 +106,8 @@ def request_process(url: str) -> (int, str):
                 date = gmt_aest(line[6:])
             if line.startswith("Last-Modified: "):
                 last_modified = gmt_aest(line[15:])
-            if line.startswith("Content-Encoding: "):
-                content_encoding = line[18:]
+            if line.startswith("Accept-Encoding: "):
+                content_encoding = line[17:]
             if line.startswith("Location: "):
                 moved_to = line[10:]
 
