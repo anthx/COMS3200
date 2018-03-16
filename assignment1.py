@@ -3,7 +3,8 @@ import socket
 import sys
 import re
 from datetime import datetime
-from dateutil.tz import tzutc, tzlocal
+from dateutil.parser import parse
+from dateutil.tz import tzutc, tzlocal, tzoffset
 from typing import *
 
 # Anthony Carrick -
@@ -40,50 +41,19 @@ def http_return_code(res_data) -> (int, str):
     return code, meaning
 
 
-# def request_date(res_data) -> str:
-#     """
-#     Extracts Date: from string
-#     :param res_data:
-#     :return: string of date
-#     """
-#     start = re.search("Date: ", res_data).start()
-#     end_of_line = res_data.find("\r\n")
-#     if end_of_line == -1:
-#         end_of_line = len(res_data)
-#     date = res_data[start + 6:end_of_line]
-#     return date
-
-
-# def request_last_modified(res_data) -> str:
-#     """
-#     Extracts Last Modified: from string
-#     :param res_data:
-#     :return: string of date
-#     """
-#     # use str.splitlines() to loop over each line
-#     start = re.search("Last-Modified: ", res_data).start()
-#     end_of_line = res_data.find("\n")
-#     if end_of_line == -1:
-#         end_of_line = len(res_data)
-#     date = res_data[start + 15:end_of_line]
-#     return date
-
-
-# def request_encoding(res_data) -> Union[str,None]:
-#     """
-#     Extracts Content-Encoding: from string
-#     :param res_data:
-#     :return: string of date
-#     """
-#     try:
-#         start = re.search("Content-Encoding: ", res_data).start()
-#     except AttributeError:
-#         return "None Specified"
-#     end_of_line = res_data.find("\r\n")
-#     if end_of_line == -1:
-#         end_of_line = len(res_data)
-#     enc = res_data[start + 18:end_of_line]
-#     return enc
+def gmt_aest(time_str: str) -> str:
+    """
+    converts a string representation of a date/time to AEST
+    :param time_str: time to convert as string
+    :return: converted time as string
+    """
+    time = parse(time_str)
+    aest = tzoffset("AEST", 36000)
+    if time.tzname() == "GMT" or time.tzname() == "UTC":
+        result = time.astimezone(aest)
+    else:
+        result = time
+    return result.strftime("%a, %d %b %Y  %H:%M:%S %Z")
 
 
 def main():
@@ -127,9 +97,9 @@ def main():
 
         for line in reply.decode().splitlines():
             if line.startswith("Date: "):
-                date = line[6:]
+                date = gmt_aest(line[6:])
             if line.startswith("Last-Modified: "):
-                last_modified = line[15:]
+                last_modified = gmt_aest(line[15:])
             if line.startswith("Content-Encoding: "):
                 content_encoding = line[18:]
 
@@ -159,6 +129,8 @@ def main():
     except socket.gaierror:
         print("Couldn't resolve host. Exiting")
         sys.exit()
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     main()
