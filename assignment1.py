@@ -2,10 +2,8 @@ from urllib.parse import urlparse
 import socket
 import sys
 import re
-from datetime import datetime
 from dateutil.parser import parse
-from dateutil.tz import tzutc, tzlocal, tzoffset
-from typing import *
+from dateutil.tz import tzoffset
 
 # Anthony Carrick -
 
@@ -57,13 +55,15 @@ def gmt_aest(time_str: str) -> str:
 
 
 def main():
-    # url = input("URL to Retrieve: ")
+    url = input("URL to Retrieve: ")
+    request_process(url)
+
+
+def request_process(url: str) -> int:
     url = "www.google.com.au"
     host = ""
     port = 80
-
     host_path = process_url(url)
-
     address = (host_path[0], port)
     server_ip = ""
     server_port = ""
@@ -74,13 +74,13 @@ def main():
     date = 0
     last_modified = 0
     content_encoding = ""
-
+    conn = 0
     try:
         conn = socket.socket()
         conn.connect(address)
         data = bytes(
             f"GET {host_path[1]} HTTP/1.0\r\n\r\n"
-            f"Host {host_path[0]}\r\n","utf-8")
+            f"Host {host_path[0]}\r\n", "utf-8")
         print(data)
         try:
             conn.sendall(data)
@@ -131,6 +131,8 @@ def main():
         sys.exit()
     finally:
         conn.close()
+        return reply_code
+
 
 if __name__ == '__main__':
     main()
