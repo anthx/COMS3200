@@ -86,7 +86,7 @@ def request_process(url: str) -> (int, str):
         conn.connect(address)
         data = bytes(
             f"HEAD {host_path[1]} HTTP/1.0\r\n"
-            f"Host {host_path[0]}\r\n\r\n", "utf-8")
+            f"Host: {host_path[0]}\r\n\r\n", "utf-8")
         print(data)
         try:
             conn.sendall(data)
@@ -94,7 +94,6 @@ def request_process(url: str) -> (int, str):
             print('Send failed')
             conn.close()
             sys.exit()
-
         # conn.sendall(data)
         reply = conn.recv(4096)
         print(reply.decode())
