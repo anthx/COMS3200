@@ -55,18 +55,18 @@ def gmt_aest(time_str: str) -> str:
 
 
 def main():
-    print("HTTP Protocol Analyzer, Written by Anthony Carrick, #########")
+    print("HTTP Protocol Analyzer, Written by Anthony Carrick, #######")
     if len(sys.argv) > 1:
         url = sys.argv[1]
     else:
         url = input("URL to Retrieve: ")
     reply_code = -1
-    i = 1
+    # i = 1
     prev_host = ""
-    while reply_code in {301, 302, -1}:
-        print(i)
+    while reply_code in {301, 302, -1} and url.startswith("https") == 0:
+        # print(i)
         reply_code, url, prev_host = request_process(url, prev_host)
-        i += 1
+        # i += 1
     print("Finished")
 
 
