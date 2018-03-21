@@ -61,8 +61,12 @@ def main():
     else:
         url = input("URL to Retrieve: ")
     reply_code = -1
+    i = 1
     while reply_code in {301, 302, -1}:
+        print(i)
         reply_code, url = request_process(url)
+        i+=1
+    print("Finished")
 
 
 def request_process(url: str) -> (int, str):
@@ -87,7 +91,7 @@ def request_process(url: str) -> (int, str):
         data = bytes(
             f"HEAD {host_path[1]} HTTP/1.0\r\n"
             f"Host: {host_path[0]}\r\n\r\n", "utf-8")
-        print(data)
+        # print(data)
         try:
             conn.sendall(data)
         except socket.error:
@@ -96,7 +100,7 @@ def request_process(url: str) -> (int, str):
             sys.exit()
         # conn.sendall(data)
         reply = conn.recv(4096)
-        print(reply.decode())
+        # print(reply.decode())
         client_ip, client_port = conn.getsockname()
         server_ip, server_port = conn.getpeername()
 
@@ -115,17 +119,15 @@ def request_process(url: str) -> (int, str):
         # content_encoding = request_encoding(reply.decode())
         # date = request_date(reply.decode())
         # last_modified = request_last_modified(reply.decode())
-        output = f"""
-        
-        URL Requested: {url} 
-        IP Address, # Port of the Server:  {server_ip} , {server_port} 
-        IP Address # Port of this Client:  {client_ip} , {client_port} 
-        Reply Code: {reply_code} 
-        Reply Code Meaning:  {reply_code_meaning}. 
-        Date: {date} (please convert times to AEST if they are in GMT, otherwise leave them as they are) 
-        Last-Modified: {last_modified} similar format  (if appropriate to the response) 
-        Content-Encoding:  {content_encoding}
-        Moved to: {moved_to} 
+        output = f"""URL Requested: {url} 
+IP Address, # Port of the Server:  {server_ip} , {server_port} 
+IP Address # Port of this Client:  {client_ip} , {client_port} 
+Reply Code: {reply_code} 
+Reply Code Meaning:  {reply_code_meaning}. 
+Date: {date}  
+Last-Modified: {last_modified}  
+Content-Encoding:  {content_encoding}
+Moved to: {moved_to} 
         """
 
         print(output)
