@@ -62,18 +62,23 @@ def main():
         url = input("URL to Retrieve: ")
     reply_code = -1
     i = 1
+    prev_host = ""
     while reply_code in {301, 302, -1}:
         print(i)
-        reply_code, url = request_process(url)
-        i+=1
+        reply_code, url, prev_host = request_process(url, prev_host)
+        i += 1
     print("Finished")
 
 
-def request_process(url: str) -> (int, str):
+def request_process(url: str, prev_host="") -> (int, str):
     host = ""
     port = 80
     host_path = process_url(url)
-    address = (host_path[0], port)
+    if host_path[0] == "":
+        host = prev_host
+    else:
+        host = host_path[0]
+    address = (host, port)
     server_ip = ""
     server_port = ""
     client_ip = ""
@@ -90,7 +95,7 @@ def request_process(url: str) -> (int, str):
         conn.connect(address)
         data = bytes(
             f"HEAD {host_path[1]} HTTP/1.0\r\n"
-            f"Host: {host_path[0]}\r\n\r\n", "utf-8")
+            f"Host: {host}\r\n\r\n", "utf-8")
         # print(data)
         try:
             conn.sendall(data)
@@ -114,6 +119,10 @@ def request_process(url: str) -> (int, str):
             if line.startswith("Location: "):
                 moved_to = line[10:]
 
+            if last_modified == 0:
+                last_modified = "Not Specified"
+            if content_encoding == "":
+                content_encoding = "None"
         reply_code, reply_code_meaning = http_return_code(reply.decode())
 
         # content_encoding = request_encoding(reply.decode())
@@ -140,7 +149,7 @@ Moved to: {moved_to}
         sys.exit()
     finally:
         conn.close()
-        return reply_code, moved_to
+        return reply_code, moved_to, host_path[0]
 
 
 if __name__ == '__main__':
