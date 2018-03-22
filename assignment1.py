@@ -95,7 +95,8 @@ def request_process(url: str, prev_host="") -> (int, str):
         conn.connect(address)
         data = bytes(
             f"HEAD {host_path[1]} HTTP/1.0\r\n"
-            f"Host: {host}\r\n\r\n", "utf-8")
+            f"Host: {host}\r\n"
+            "Accept-Encoding: compress, deflate, gzip\r\n\r\n","utf-8")
         # print(data)
         try:
             conn.sendall(data)
@@ -114,7 +115,7 @@ def request_process(url: str, prev_host="") -> (int, str):
                 date = gmt_aest(line[6:])
             if line.startswith("Last-Modified: "):
                 last_modified = gmt_aest(line[15:])
-            if line.startswith("Accept-Encoding: "):
+            if line.startswith("Content-Encoding: "):
                 content_encoding = line[17:]
             if line.startswith("Location: "):
                 moved_to = line[10:]
@@ -135,7 +136,7 @@ Reply Code: {reply_code}
 Reply Code Meaning:  {reply_code_meaning}. 
 Date: {date}  
 Last-Modified: {last_modified}  
-Content-Encoding:  {content_encoding}
+Content-Encoding: {content_encoding}
 Moved to: {moved_to} 
         """
 
