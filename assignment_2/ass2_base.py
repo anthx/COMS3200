@@ -4,7 +4,6 @@ import sys
 import binascii
 from bitstring import BitArray
 
-
 """
 The first 12 bytes is the header section, which has a number of fields. 
 The first field is a 16-bit number that identifies the query. This identifier is
@@ -46,6 +45,36 @@ server.
 # a = binascii.unhexlify(message)
 # print(a)
 
+
+def host_question(host:str, record:str = "A") -> bytearray:
+    """
+    creates DNS question from host and record
+    :param host: str, the host
+    :param record: str, record type
+    :return: bytearray of hex
+    """
+    data = bytearray()
+    qname = bytearray()
+    qtype = bytes()
+    qclass = b'\x00\x01'
+    for label in host.split('.'):
+        qname.extend(bytes([len(label)]))
+        qname.extend(bytes(label, "utf-8"))
+    # Finish the QNAME with 00
+    qname.extend(bytes([0]))
+
+    if record == "A":
+        qtype = b'\x00\x01'
+
+    data = bytearray(qname)
+    print(data)
+
+    data.extend(qtype)
+    data.extend(qclass)
+    print(data.hex())
+    return data
+
+
 def query_dns(dns: str, host: str) -> dict:
     """
     Queries the DNS server for the host given
@@ -54,6 +83,7 @@ def query_dns(dns: str, host: str) -> dict:
     :return: dict of data
     """
 
+    dry_run = False
     address = (dns, 53)
     qr = 0
     op_code: int = 0
@@ -61,28 +91,51 @@ def query_dns(dns: str, host: str) -> dict:
     rd = 1
     qd_count = 1
     message = bytearray(b'\xAC\xAC')
-
+    print(message.__len__())
     flags = BitArray("0b"+
                      format(qr, 'b')+
                      format(op_code,'04b')+
+                     # AA
                      format(0, 'b')+
                      format(tc, 'b')+
                      format(rd, 'b')+
-                     format(qd_count, 'b')+
-                     format(0, 'b')+
-                     format(0, 'b')+
-                     format(0))
-    print(flags.bin)
-    message.append(flags.int)
+                     # 3 Reserved bits
+                     format(0, 'b') +
+                     format(0, 'b') +
+                     format(0, 'b') +
+                     # RA
+                     format(0, 'b') +
+                     # RCODE
+                     format(0, '04b'))
+
+    message.extend(flags.bytes)
+    print(message.__len__())
+    # QDCOUNT
+    if qd_count == 1:
+        message.extend(b'\x00\x01')
+    # ANCOUNT
+    message.extend(b'\x00\x00')
+    # NSCOUNT
+    message.extend(b'\x00\x00')
+    # ARCOUNT
+    message.extend(b'\x00\x00')
+
+    print("header length:", message.__len__())
     print(message)
     # Make the query
 
+    query = host_question(host, "A")
+    message.extend(query)
+    print(message)
+    print("message length: ", message.__len__())
 
+    if not dry_run:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.sendto(message, address)
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(address)
-
+        data, _ = s.recvfrom(2048)
+        print(data)
     answer = {"ipv4": "0.0.0.0"}
     return answer
 
-query_dns("", "")
+query_dns("8.8.8.8", "www.mydomain.com")
