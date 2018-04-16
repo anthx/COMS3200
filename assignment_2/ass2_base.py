@@ -75,13 +75,24 @@ def host_question(host:str, record:str = "A") -> bytearray:
     return data
 
 
+def parse_ipv4(ip_bytes: bytearray):
+    ip = ""
+    for byte in ip_bytes:
+        ip += str(byte)
+        ip += "."
+    ip = ip[0:len(ip)-1]
+    return ip
+
+
 def parse_reply(data: bytes, question_bytes: bytes):
     """
     Takes DNS response and parses it
     :param data:
     :param question: the original domain/ip to lookup
+    :param question_bytes: the question we sent so we have it as a reference
     :return:
     """
+    stuff = []
     bytes_array = bytearray(data)
 
     answer = {}
@@ -91,11 +102,23 @@ def parse_reply(data: bytes, question_bytes: bytes):
     start_of_answers = 12 + len(question_bytes)
     answers = bytes_array[start_of_answers:]
     # 11 or 00 in binary is the start the record
-    name = BitArray(answers[0:2])
-    if name.bin.startswith("11"):
-        pass
-    # pointer = BitArray(name.bin[2:])
-    stuff = {"ipv4": "0.0.0.0"}
+    byte_offset = 0
+    for ans in range(answer_count):
+        this_answer = {}
+        name = BitArray(answers[byte_offset+0:byte_offset+2])
+        if name.bin.startswith("11"):
+            pass
+        # pointer = BitArray(name.bin[2:])
+
+        # each answer consists of 10 bytes before the RDLENGTH
+        this_answer["type"] = int.from_bytes(answers[byte_offset+2:byte_offset+4], "big")
+        klass = int.from_bytes(answers[byte_offset+4:byte_offset+6], "big")
+
+        rdlength = int.from_bytes(answers[byte_offset+10:byte_offset+12], "big")
+        rdata = answers[byte_offset+12:byte_offset+12+rdlength+1]
+        byte_offset = byte_offset + rdlength + 12
+        this_answer["ipv4"] = parse_ipv4(rdata)
+        stuff.append(this_answer)
     return stuff
 
 
@@ -106,7 +129,7 @@ def query_dns(dns: str, host: str) -> dict:
     :param host: string on address
     :return: dict of data
     """
-
+    answer = []
     dry_run = False
     address = (dns, 53)
     qr = 0
@@ -159,7 +182,9 @@ def query_dns(dns: str, host: str) -> dict:
 
         data, _ = s.recvfrom(2048)
         print(data)
-    answer = {"ipv4": "0.0.0.0"}
+        answer = parse_reply(data, query)
+    # answer = {"ipv4": "0.0.0.0"}
+    print(answer)
     return answer
 
 
