@@ -71,8 +71,32 @@ def host_question(host:str, record:str = "A") -> bytearray:
 
     data.extend(qtype)
     data.extend(qclass)
-    print(data.hex())
+    print("question", data)
     return data
+
+
+def parse_reply(data: bytes, question_bytes: bytes):
+    """
+    Takes DNS response and parses it
+    :param data:
+    :param question: the original domain/ip to lookup
+    :return:
+    """
+    bytes_array = bytearray(data)
+
+    answer = {}
+    answer["id"] = bytes_array[0:2]
+    flags = BitArray(bytes_array[2:4])
+    answer_count: int = int.from_bytes(bytes_array[6:8], "big")
+    start_of_answers = 12 + len(question_bytes)
+    answers = bytes_array[start_of_answers:]
+    # 11 or 00 in binary is the start the record
+    name = BitArray(answers[0:2])
+    if name.bin.startswith("11"):
+        pass
+    # pointer = BitArray(name.bin[2:])
+    stuff = {"ipv4": "0.0.0.0"}
+    return stuff
 
 
 def query_dns(dns: str, host: str) -> dict:
@@ -138,4 +162,10 @@ def query_dns(dns: str, host: str) -> dict:
     answer = {"ipv4": "0.0.0.0"}
     return answer
 
-query_dns("8.8.8.8", "www.mydomain.com")
+
+def runner():
+    query_dns("8.8.8.8", "www.mydomain.com")
+
+
+if __name__ == '__main__':
+    runner()
