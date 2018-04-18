@@ -3,6 +3,8 @@ import socket
 import sys
 import binascii
 from bitstring import BitArray
+from binascii import unhexlify
+from binascii import hexlify
 
 """
 The first 12 bytes is the header section, which has a number of fields. 
@@ -65,7 +67,8 @@ def host_question(host:str, record:str = "A") -> bytearray:
 
     if record == "A":
         qtype = b'\x00\x01'
-
+    if record == "AAAA":
+        qtype = b'\x00\x1c'
     data = bytearray(qname)
     print(data)
 
@@ -80,6 +83,20 @@ def parse_ipv4(ip_bytes: bytearray):
     for byte in ip_bytes:
         ip += str(byte)
         ip += "."
+    ip = ip[0:len(ip)-1]
+    return ip
+
+
+def parse_ipv6(ip_bytes: bytearray):
+    ip = ""
+    for pair in range(0, 15, 2):
+        byte_pair = ip_bytes[pair:pair+2]
+        hex_str = str(hexlify(byte_pair))
+        hex_str = hex_str[2:-1]
+        ip += hex_str
+        ip += ":"
+        # if pair == 14:
+        #     ip += ":"
     ip = ip[0:len(ip)-1]
     return ip
 
@@ -108,16 +125,22 @@ def parse_reply(data: bytes, question_bytes: bytes):
         name = BitArray(answers[byte_offset+0:byte_offset+2])
         if name.bin.startswith("11"):
             pass
-        # pointer = BitArray(name.bin[2:])
+            # pointer = int.from_bytes(BitArray(name.bin[2:]).bytes, "big")
 
         # each answer consists of 10 bytes before the RDLENGTH
-        this_answer["type"] = int.from_bytes(answers[byte_offset+2:byte_offset+4], "big")
+        type = int.from_bytes(answers[byte_offset+2:byte_offset+4], "big")
+        this_answer["type"] = type
         klass = int.from_bytes(answers[byte_offset+4:byte_offset+6], "big")
 
         rdlength = int.from_bytes(answers[byte_offset+10:byte_offset+12], "big")
-        rdata = answers[byte_offset+12:byte_offset+12+rdlength+1]
+        rdata = answers[byte_offset+12:byte_offset+12+rdlength]
         byte_offset = byte_offset + rdlength + 12
-        this_answer["ipv4"] = parse_ipv4(rdata)
+        if type == 1:
+            this_answer["ipv4"] = parse_ipv4(rdata)
+        if type == 5:
+            this_answer["cname"] = 0
+        if type == 28:
+            this_answer["ipv6"] = parse_ipv6(rdata)
         stuff.append(this_answer)
     return stuff
 
@@ -171,7 +194,7 @@ def query_dns(dns: str, host: str) -> dict:
     print(message)
     # Make the query
 
-    query = host_question(host, "A")
+    query = host_question(host, "AAAA")
     message.extend(query)
     print(message)
     print("message length: ", message.__len__())
@@ -189,7 +212,7 @@ def query_dns(dns: str, host: str) -> dict:
 
 
 def runner():
-    query_dns("8.8.8.8", "www.mydomain.com")
+    query_dns("8.8.8.8", "google.com")
 
 
 if __name__ == '__main__':
