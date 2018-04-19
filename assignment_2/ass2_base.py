@@ -101,18 +101,18 @@ def parse_ipv6(ip_bytes: bytearray):
     return ip
 
 
-def parse_reply(data: bytes, question_bytes: bytes):
+def parse_reply(data: bytearray, question_bytes: bytearray) -> list:
     """
     Takes DNS response and parses it
     :param data:
-    :param question: the original domain/ip to lookup
+    :param question_bytes: the original domain/ip to lookup
     :param question_bytes: the question we sent so we have it as a reference
     :return:
     """
     stuff = []
     bytes_array = bytearray(data)
 
-    answer = {}
+    answer = dict()
     answer["id"] = bytes_array[0:2]
     flags = BitArray(bytes_array[2:4])
     answer_count: int = int.from_bytes(bytes_array[6:8], "big")
@@ -142,19 +142,41 @@ def parse_reply(data: bytes, question_bytes: bytes):
         if type == 28:
             this_answer["ipv6"] = parse_ipv6(rdata)
         stuff.append(this_answer)
+        print("")
     return stuff
 
 
-def query_dns(dns: str, host: str) -> dict:
+def query_dns(dns: str, host: str, qtype: str) -> list:
     """
     Queries the DNS server for the host given
     :param dns: string of ip
-    :param host: string on address
+    :param host: string of address
+    :param: qtype: string of Question Type
     :return: dict of data
     """
     answer = []
     dry_run = False
     address = (dns, 53)
+    message, query = create_request_message(host, qtype)
+
+    if not dry_run:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.sendto(message, address)
+
+        data, _ = s.recvfrom(2048)
+        print(data)
+        answer = parse_reply(data, query)
+    print(answer)
+    return answer
+
+
+def create_request_message(host, qtype):
+    """
+    generates requests for a DNS request
+    :param host: the host to query for
+    :param qtype: the type of request
+    :return: 
+    """
     qr = 0
     op_code: int = 0
     tc = 0
@@ -162,13 +184,13 @@ def query_dns(dns: str, host: str) -> dict:
     qd_count = 1
     message = bytearray(b'\xAC\xAC')
     print(message.__len__())
-    flags = BitArray("0b"+
-                     format(qr, 'b')+
-                     format(op_code,'04b')+
+    flags = BitArray("0b" +
+                     format(qr, 'b') +
+                     format(op_code, '04b') +
                      # AA
-                     format(0, 'b')+
-                     format(tc, 'b')+
-                     format(rd, 'b')+
+                     format(0, 'b') +
+                     format(tc, 'b') +
+                     format(rd, 'b') +
                      # 3 Reserved bits
                      format(0, 'b') +
                      format(0, 'b') +
@@ -177,7 +199,6 @@ def query_dns(dns: str, host: str) -> dict:
                      format(0, 'b') +
                      # RCODE
                      format(0, '04b'))
-
     message.extend(flags.bytes)
     print(message.__len__())
     # QDCOUNT
@@ -189,30 +210,18 @@ def query_dns(dns: str, host: str) -> dict:
     message.extend(b'\x00\x00')
     # ARCOUNT
     message.extend(b'\x00\x00')
-
     print("header length:", message.__len__())
     print(message)
     # Make the query
-
-    query = host_question(host, "AAAA")
+    query = host_question(host, qtype)
     message.extend(query)
     print(message)
     print("message length: ", message.__len__())
-
-    if not dry_run:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.sendto(message, address)
-
-        data, _ = s.recvfrom(2048)
-        print(data)
-        answer = parse_reply(data, query)
-    # answer = {"ipv4": "0.0.0.0"}
-    print(answer)
-    return answer
+    return message, query
 
 
 def runner():
-    query_dns("8.8.8.8", "google.com")
+    query_dns("8.8.8.8", "google.com", "AAAA")
 
 
 if __name__ == '__main__':
