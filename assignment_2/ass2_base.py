@@ -48,7 +48,7 @@ server.
 # print(a)
 
 
-def host_question(host:str, record:str = "A") -> bytearray:
+def host_question(host: str, record: str = "A") -> bytearray:
     """
     creates DNS question from host and record
     :param host: str, the host
@@ -129,18 +129,18 @@ def parse_reply(data: bytearray, question_bytes: bytearray) -> list:
             # pointer = int.from_bytes(BitArray(name.bin[2:]).bytes, "big")
 
         # each answer consists of 10 bytes before the RDLENGTH
-        type = int.from_bytes(answers[byte_offset+2:byte_offset+4], "big")
-        this_answer["type"] = type
+        ans_type = int.from_bytes(answers[byte_offset+2:byte_offset+4], "big")
+        this_answer["type"] = ans_type
         klass = int.from_bytes(answers[byte_offset+4:byte_offset+6], "big")
 
         rdlength = int.from_bytes(answers[byte_offset+10:byte_offset+12], "big")
         rdata = answers[byte_offset+12:byte_offset+12+rdlength]
         byte_offset = byte_offset + rdlength + 12
-        if type == 1:
+        if ans_type == 1:
             this_answer["ipv4"] = parse_ipv4(rdata)
-        if type == 5:
+        if ans_type == 5:
             this_answer["cname"] = 0
-        if type == 28:
+        if ans_type == 28:
             this_answer["ipv6"] = parse_ipv6(rdata)
         stuff.append(this_answer)
         print("")
@@ -152,8 +152,8 @@ def query_dns(dns: str, host: str, qtype: str) -> list:
     Queries the DNS server for the host given
     :param dns: string of ip
     :param host: string of address
-    :param: qtype: string of Question Type
-    :return: dict of data
+    :param qtype: string of Question Type
+    :return dict of data
     """
     answer = []
     dry_run = False
