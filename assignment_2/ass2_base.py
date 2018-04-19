@@ -64,7 +64,8 @@ def host_question(host:str, record:str = "A") -> bytearray:
         qname.extend(bytes(label, "utf-8"))
     # Finish the QNAME with 00
     qname.extend(bytes([0]))
-
+    if record not in ["A", "AAAA"]:
+        raise ValueError("Unsupported RR given.")
     if record == "A":
         qtype = b'\x00\x01'
     if record == "AAAA":
