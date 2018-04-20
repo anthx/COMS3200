@@ -220,18 +220,25 @@ def create_request_message(host, qtype):
     return message, query
 
 
-def runner():
+def runner(dns, host):
+    a = query_dns(dns, host, "A")
+    aaaa = query_dns(dns, host, "AAAA")
+
+    result = {**a, **aaaa}
+    return result
+
+
+def cli_app():
     if len(sys.argv) < 3:
         dns = input("DNS Server IP Address?")
         host = input("Server to query?")
     else:
         dns, host = sys.argv[1], sys.argv[2]
 
-    a = query_dns(dns, host, "A")
-    aaaa = query_dns(dns, host, "AAAA")
-
-    result = {**a, **aaaa}
-    print(result)
-
+    result = runner(dns, host)
+    print(f"Host: {host}"
+          f"\nIPv4: {result['ipv4']}")
+    if result['ipv6']:
+        print(f"IPv6: {result['ipv6']}")
 if __name__ == '__main__':
-    runner()
+    cli_app()
