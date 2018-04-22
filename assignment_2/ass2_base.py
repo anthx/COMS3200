@@ -5,6 +5,7 @@ import binascii
 from bitstring import BitArray
 from binascii import unhexlify
 from binascii import hexlify
+import re
 
 """
 The first 12 bytes is the header section, which has a number of fields. 
@@ -59,12 +60,10 @@ def host_question(host: str, record: str = "A") -> bytearray:
     qname = bytearray()
     qtype = bytes()
     qclass = b'\x00\x01'
-    for label in host.split('.'):
-        qname.extend(bytes([len(label)]))
-        qname.extend(bytes(label, "utf-8"))
-    # Finish the QNAME with 00
-    qname.extend(bytes([0]))
-    if record not in ["A", "AAAA", "MX"]:
+
+    if re.search("[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}", host):
+        record = "PTR"
+    if record not in ["A", "AAAA", "MX", "PTR"]:
         raise ValueError("Unsupported RR given.")
     if record == "A":
         qtype = b'\x00\x01'
@@ -72,6 +71,24 @@ def host_question(host: str, record: str = "A") -> bytearray:
         qtype = b'\x00\x1c'
     if record == "MX":
         qtype = b'\x00\x0f'
+    if record == "PTR":
+        qtype = b'\x00\x0c'
+    if record == "PTR":
+        # reverse IP is backward ip plus in-addr.arpa
+        # so will be recreate the host to query and then make it in to bytes as
+        # with the normal requests
+        rev = host.split(".")
+        rev.reverse()
+        host = ""
+        for quad in rev:
+            host += quad + "."
+        host += "in-addr.arpa"
+    for label in host.split('.'):
+        qname.extend(bytes([len(label)]))
+        qname.extend(bytes(label, "utf-8"))
+
+    # Finish the QNAME with 00
+    qname.extend(bytes([0]))
     data = bytearray(qname)
     # print(data)
 
@@ -104,6 +121,29 @@ def parse_ipv6(ip_bytes: bytearray):
     return ip
 
 
+def parse_label_format(label_bytes: bytearray) -> str:
+    """
+    Parses a 'label format' of bytes - like the opposite of what I make in 
+    host_question()
+    :param label_bytes: data to parse 
+    :return: normal formatted string
+    """
+    result = ""
+    start_char = 0
+    while True:
+        length = label_bytes[start_char]
+        if label_bytes[start_char] == 00:
+            result = result[:-1]
+            break
+        result += label_bytes[start_char + 1:length + start_char + 1].decode(
+            "utf-8") + "."
+        # print(data)
+
+        start_char += length + 1
+
+    return result
+
+
 def parse_mx(rdata: bytearray):
     firstbyte = rdata[0:1]
     secondbyte = rdata[1:2]
@@ -126,7 +166,7 @@ def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
     Takes DNS response and parses it
     :param data:
     :param q_bytes: the original domain/ip to lookup
-    :param question_bytes: the question we sent so we have it as a reference
+    :param q_bytes: the question we sent so we have it as a reference
     :return:
     """
     bytes_array = bytearray(data)
@@ -165,6 +205,8 @@ def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
             print("mx")
             pass
             list_mx_records.append(parse_mx(rdata))
+        if ans_type == 12:
+            answer["reverse"] = parse_label_format(rdata)
         # stuff.(this_answer)
 
     return answer
@@ -261,9 +303,14 @@ def cli_app():
         dns, host = sys.argv[1], sys.argv[2]
 
     result = runner(dns, host)
-    print(f"Host: {host}"
-          f"\nIPv4: {result['ipv4']}")
+    print(f"Host: {host}")
+    if "ipv4" in result:
+        print(f"IPv4: {result.get('ipv4','None')}")
     if "ipv6" in result:
-        print(f"IPv6: {result['ipv6'].get('None')}")
+        print(f"IPv6: {result.get('ipv6','None')}")
+    if "reverse" in result:
+        print(f"Name: {result.get('reverse','None')}")
+
+
 if __name__ == '__main__':
     cli_app()

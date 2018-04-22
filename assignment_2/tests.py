@@ -2,6 +2,8 @@ import unittest
 from ass2_base import parse_reply
 from ass2_base import parse_ipv4
 from ass2_base import parse_ipv6
+from ass2_base import parse_mx
+from ass2_base import parse_label_format
 from binascii import unhexlify
 from binascii import hexlify
 
@@ -30,5 +32,15 @@ class Tests(unittest.TestCase):
         ip_bytes = unhexlify("24072e0006020303be8bd51e6a959b72")
         expected = "2407:2e00:602:303:be8b:d51e:6a95:9b72"
         self.assertEqual(expected, parse_ipv6(ip_bytes))
+
+    def test_mx(self):
+        mx_bytes = (bytearray(b'\x00\n\x05aspmx\x01l\xc0\x0c'))
+        expected = "aspmx.l.google.com."
+        self.assertEqual(expected, parse_mx(mx_bytes))
+
+    def test_label_format(self):
+        label_bytes = bytearray(b'\x05manna\x04eait\x02uq\x03edu\x02au\x00')
+        expected = "manna.eait.uq.edu.au"
+        self.assertEqual(expected, parse_label_format(label_bytes))
 if __name__ == '__main__':
     unittest.main()
