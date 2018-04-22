@@ -73,11 +73,11 @@ def host_question(host: str, record: str = "A") -> bytearray:
     if record == "MX":
         qtype = b'\x00\x0f'
     data = bytearray(qname)
-    print(data)
+    # print(data)
 
     data.extend(qtype)
     data.extend(qclass)
-    print("question", data)
+    # print("question", data)
     return data
 
 
@@ -113,12 +113,13 @@ def parse_mx(rdata: bytearray):
     while True:
         length = rest[start_char]
         data += rest[start_char+1:length+start_char+1].decode("utf-8") + "."
-        print(data)
+        # print(data)
         start_char += length +1
         if not type(rest[start_char]):
             break
-    print(data)
+    # print(data)
     return data
+
 
 def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
     """
@@ -169,7 +170,7 @@ def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
     return answer
 
 
-def query_dns(dns: str, host: str, qtype: str) -> dict:
+def query_dns(dns: str, host: str, qtype: str="A") -> dict:
     """
     Queries the DNS server for the host given
     :param dns: string of ip
@@ -187,9 +188,9 @@ def query_dns(dns: str, host: str, qtype: str) -> dict:
         s.sendto(message, address)
 
         data, _ = s.recvfrom(2048)
-        print("data:", data)
+        # print("data:", data)
         answer = parse_reply(data, query)
-    print("answer", answer)
+    # print("answer", answer)
     return answer
 
 
@@ -206,7 +207,7 @@ def create_request_message(host, qtype):
     rd = 1
     qd_count = 1
     message = bytearray(b'\xAC\xAC')
-    print(message.__len__())
+    # print(message.__len__())
     flags = BitArray("0b" +
                      format(qr, 'b') +
                      format(op_code, '04b') +
@@ -223,7 +224,7 @@ def create_request_message(host, qtype):
                      # RCODE
                      format(0, '04b'))
     message.extend(flags.bytes)
-    print(message.__len__())
+    # print(message.__len__())
     # QDCOUNT
     if qd_count == 1:
         message.extend(b'\x00\x01')
@@ -233,13 +234,13 @@ def create_request_message(host, qtype):
     message.extend(b'\x00\x00')
     # ARCOUNT
     message.extend(b'\x00\x00')
-    print("header length:", message.__len__())
-    print(message)
+    # print("header length:", message.__len__())
+    # print(message)
     # Make the query
     query = host_question(host, qtype)
     message.extend(query)
-    print(message)
-    print("message length: ", message.__len__())
+    # print(message)
+    # print("message length: ", message.__len__())
     return message, query
 
 
