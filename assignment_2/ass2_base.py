@@ -64,12 +64,14 @@ def host_question(host: str, record: str = "A") -> bytearray:
         qname.extend(bytes(label, "utf-8"))
     # Finish the QNAME with 00
     qname.extend(bytes([0]))
-    if record not in ["A", "AAAA"]:
+    if record not in ["A", "AAAA", "MX"]:
         raise ValueError("Unsupported RR given.")
     if record == "A":
         qtype = b'\x00\x01'
     if record == "AAAA":
         qtype = b'\x00\x1c'
+    if record == "MX":
+        qtype = b'\x00\x0f'
     data = bytearray(qname)
     print(data)
 
@@ -102,11 +104,27 @@ def parse_ipv6(ip_bytes: bytearray):
     return ip
 
 
-def parse_reply(data: bytearray, question_bytes: bytearray) -> dict:
+def parse_mx(rdata: bytearray):
+    firstbyte = rdata[0:1]
+    secondbyte = rdata[1:2]
+    rest = rdata[2:]
+    data = ""
+    start_char = 0
+    while True:
+        length = rest[start_char]
+        data += rest[start_char+1:length+start_char+1].decode("utf-8") + "."
+        print(data)
+        start_char += length +1
+        if not type(rest[start_char]):
+            break
+    print(data)
+    return data
+
+def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
     """
     Takes DNS response and parses it
     :param data:
-    :param question_bytes: the original domain/ip to lookup
+    :param q_bytes: the original domain/ip to lookup
     :param question_bytes: the question we sent so we have it as a reference
     :return:
     """
@@ -116,10 +134,11 @@ def parse_reply(data: bytearray, question_bytes: bytearray) -> dict:
     answer["id"] = bytes_array[0:2]
     flags = BitArray(bytes_array[2:4])
     answer_count: int = int.from_bytes(bytes_array[6:8], "big")
-    start_of_answers = 12 + len(question_bytes)
+    start_of_answers = 12 + len(q_bytes)
     answers = bytes_array[start_of_answers:]
     # 11 or 00 in binary is the start the record
     byte_offset = 0
+    list_mx_records = []
     for ans in range(answer_count):
         this_answer = {}
         name = BitArray(answers[byte_offset+0:byte_offset+2])
@@ -141,8 +160,12 @@ def parse_reply(data: bytearray, question_bytes: bytearray) -> dict:
             answer["cname"] = 0
         if ans_type == 28:
             answer["ipv6"] = parse_ipv6(rdata)
+        if ans_type == 15:
+            print("mx")
+            pass
+            list_mx_records.append(parse_mx(rdata))
         # stuff.(this_answer)
-        print("")
+
     return answer
 
 
@@ -164,9 +187,9 @@ def query_dns(dns: str, host: str, qtype: str) -> dict:
         s.sendto(message, address)
 
         data, _ = s.recvfrom(2048)
-        print(data)
+        print("data:", data)
         answer = parse_reply(data, query)
-    print(answer)
+    print("answer", answer)
     return answer
 
 
@@ -223,6 +246,7 @@ def create_request_message(host, qtype):
 def runner(dns, host):
     a = query_dns(dns, host, "A")
     aaaa = query_dns(dns, host, "AAAA")
+    # mx = query_dns(dns, host, "MX")
 
     result = {**a, **aaaa}
     return result
@@ -238,7 +262,7 @@ def cli_app():
     result = runner(dns, host)
     print(f"Host: {host}"
           f"\nIPv4: {result['ipv4']}")
-    if result['ipv6']:
-        print(f"IPv6: {result['ipv6']}")
+    if "ipv6" in result:
+        print(f"IPv6: {result['ipv6'].get('None')}")
 if __name__ == '__main__':
     cli_app()
