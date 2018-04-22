@@ -1,18 +1,43 @@
 import tkinter as tk
 import ass2_base as base
 
+DNS_SERVERS = ["8.8.8.8", "9.9.9.9", "1.1.1.1"]
+QUERIES = ["abc.net.au", "uq.edu.au"]
+
+
+class Presets(tk.Frame):
+    """
+    Frame to make preset buttons
+    """
+    def __init__(self, parent, buttons):
+        super().__init__(parent)
+        self._parent = parent
+        for button in buttons:
+            tk.Button(self, text=button,
+                      command=lambda button = button: self.update_entry(button)).pack(
+                side=tk.LEFT, expand=1)
+
+    def update_entry(self, text):
+        self._parent.set(text)
+
 
 class EntryGroup(tk.Frame):
     """
     Frame to contain a tk.Entry and label
     """
-    def __init__(self, parent, label, width):
+    def __init__(self, parent, label, width, buttons):
         super().__init__(parent)
-        self.label = tk.Label(self, text=label)
+
+        self.entry_frame = tk.Frame(self)
+        self.entry_frame.pack(side=tk.TOP)
+        self.label = tk.Label(self.entry_frame, text=label)
         self.label.pack(side=tk.LEFT)
 
-        self.entry = tk.Entry(self, width=width)
+        self.entry = tk.Entry(self.entry_frame, width=width)
         self.entry.pack(side=tk.LEFT)
+
+        self.buttons = Presets(self, buttons)
+        self.buttons.pack(side=tk.TOP)
 
     def get(self):
         """
@@ -20,6 +45,14 @@ class EntryGroup(tk.Frame):
         :return: str
         """
         return self.entry.get()
+
+    def set(self, string):
+        """
+        sets the value of the text box
+        :return: 
+        """
+        self.entry.delete(0, tk.END)
+        self.entry.insert(0, string)
 
 
 class Toolbar(tk.Frame):
@@ -30,10 +63,11 @@ class Toolbar(tk.Frame):
         super().__init__(master)
         self.relief = tk.RAISED
 
-        self.dns = EntryGroup(self, "DNS Server: ", 30)
+        self.dns = EntryGroup(self, "DNS Server: ", 30, DNS_SERVERS)
+        # self.dns.buttons
         self.dns.pack(side=tk.LEFT, padx=10)
 
-        self.query = EntryGroup(self, "Query: ", 70)
+        self.query = EntryGroup(self, "Query: ", 70, QUERIES)
         self.query.pack(side=tk.LEFT, padx=10)
 
         self.submit_button = tk.Button(self, text="Send!", width=10, padx=10,
@@ -56,14 +90,18 @@ class GUI(object):
         self.toolbar = Toolbar(master, self)
         self.toolbar.pack(expand=0, fill=tk.X, padx=0)
 
+        self.output_display = tk.Text(master)
+        self.output_display.pack(side=tk.TOP, expand=1)
+
     def submit(self):
+        self.output_display.delete(1.0, tk.END)
         query = self.toolbar.query.get()
         dns = self.toolbar.dns.get()
         result = base.runner(dns, query)
-        print(f"Host: {query}"
+        self.output_display.insert(tk.END, f"Host: {query}"
               f"\nIPv4: {result['ipv4']}")
         if "ipv6" in result:
-            print(f"IPv6: {result['ipv6']}")
+            self.output_display.insert(tk.END,f"\nIPv6: {result['ipv6']}")
 
 
 if __name__ == '__main__':
