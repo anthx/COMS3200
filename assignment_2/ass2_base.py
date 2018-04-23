@@ -6,6 +6,7 @@ from bitstring import BitArray
 from binascii import unhexlify
 from binascii import hexlify
 import re
+import dnslib
 
 """
 The first 12 bytes is the header section, which has a number of fields. 
@@ -161,6 +162,13 @@ def parse_mx(rdata: bytearray):
     return data
 
 
+def parse_cname(response: bytearray):
+    r = dnslib.DNSRecord.parse(response)
+    for r in r.rr:
+        if type(r.rdata) == dnslib.CNAME:
+            return str(r.rdata)
+
+
 def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
     """
     Takes DNS response and parses it
@@ -198,7 +206,7 @@ def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
         if ans_type == 1:
             answer["ipv4"] = parse_ipv4(rdata)
         if ans_type == 5:
-            answer["cname"] = 0
+            answer["cname"] = parse_cname(data)
         if ans_type == 28:
             answer["ipv6"] = parse_ipv6(rdata)
         if ans_type == 15:
