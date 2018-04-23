@@ -1,8 +1,8 @@
 import unittest
 from assignment1 import http_return_code
-from assignment1 import request_date
-from assignment1 import request_last_modified
-from assignment1 import request_encoding
+# from assignment1 import request_date
+# from assignment1 import request_last_modified
+# from assignment1 import request_encoding
 
 
 class Tests(unittest.TestCase):

@@ -50,6 +50,25 @@ server.
 # print(a)
 
 
+class CompleteResult(object):
+
+    def __init__(self, result: dict):
+        self._result = result
+
+    def __str__(self):
+        string = f"Host: {self._result.get('host')}"
+        if "cname" in self._result:
+            string += "\n" + \
+                      f"Canonical Name: {self._result.get('cname', 'None')}"
+        if "ipv4" in self._result:
+            string += "\n" + f"IPv4: {self._result.get('ipv4','None')}"
+        if "ipv6" in self._result:
+            string += "\n" + f"IPv6: {self._result.get('ipv6','None')}"
+        if "reverse" in self._result:
+            string += "\n" + f"Name: {self._result.get('reverse','None')}"
+        return string
+
+
 def host_question(host: str, record: str = "A") -> bytearray:
     """
     creates DNS question from host and record
@@ -294,13 +313,14 @@ def create_request_message(host, qtype):
     return message, query
 
 
-def runner(dns, host):
+def runner(dns, host) -> CompleteResult:
     a = query_dns(dns, host, "A")
     aaaa = query_dns(dns, host, "AAAA")
     # mx = query_dns(dns, host, "MX")
 
-    result = {**a, **aaaa}
-    return result
+    result = {"host": host, **a, **aaaa}
+    a = CompleteResult(result)
+    return a
 
 
 def cli_app():
@@ -311,13 +331,14 @@ def cli_app():
         dns, host = sys.argv[1], sys.argv[2]
 
     result = runner(dns, host)
-    print(f"Host: {host}")
-    if "ipv4" in result:
-        print(f"IPv4: {result.get('ipv4','None')}")
-    if "ipv6" in result:
-        print(f"IPv6: {result.get('ipv6','None')}")
-    if "reverse" in result:
-        print(f"Name: {result.get('reverse','None')}")
+    # print(f"Host: {host}")
+    # if "ipv4" in result:
+    #     print(f"IPv4: {result.get('ipv4','None')}")
+    # if "ipv6" in result:
+    #     print(f"IPv6: {result.get('ipv6','None')}")
+    # if "reverse" in result:
+    #     print(f"Name: {result.get('reverse','None')}")
+    print(result)
 
 
 if __name__ == '__main__':

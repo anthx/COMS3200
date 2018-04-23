@@ -98,10 +98,7 @@ class GUI(object):
         query = self.toolbar.query.get()
         dns = self.toolbar.dns.get()
         result = base.runner(dns, query)
-        self.output_display.insert(tk.END, f"Host: {query}"
-              f"\nIPv4: {result['ipv4']}")
-        if "ipv6" in result:
-            self.output_display.insert(tk.END,f"\nIPv6: {result['ipv6']}")
+        self.output_display.insert(tk.END, result)
 
 
 if __name__ == '__main__':
