@@ -61,11 +61,14 @@ class CompleteResult(object):
             string += "\n" + \
                       f"Canonical Name: {self._result.get('cname', 'None')}"
         if "ipv4" in self._result:
-            string += "\n" + f"IPv4: {self._result.get('ipv4','None')}"
+            ips = ', '.join(self._result['ipv4'])
+            string += "\n" + f"IPv4: {ips}"
         if "ipv6" in self._result:
             string += "\n" + f"IPv6: {self._result.get('ipv6','None')}"
         if "reverse" in self._result:
             string += "\n" + f"Name: {self._result.get('reverse','None')}"
+        if "mx" in self._result:
+            string += "\n" + f"MX: {', '.join(self._result['mx'])}"
         return string
 
 
@@ -181,6 +184,15 @@ def parse_mx(rdata: bytearray):
     return data
 
 
+def parse_mx_dnslib(response: bytearray) -> list:
+    r = dnslib.DNSRecord.parse(response)
+    mx_list = []
+    for record in r.short().splitlines():
+        mx_list.append(record.split(' ')[1])
+
+    return mx_list
+
+
 def parse_cname(response: bytearray):
     r = dnslib.DNSRecord.parse(response)
     for r in r.rr:
@@ -207,6 +219,7 @@ def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
     # 11 or 00 in binary is the start the record
     byte_offset = 0
     list_mx_records = []
+    list_a_records = []
     for ans in range(answer_count):
         this_answer = {}
         name = BitArray(answers[byte_offset+0:byte_offset+2])
@@ -223,18 +236,19 @@ def parse_reply(data: bytearray, q_bytes: bytearray) -> dict:
         rdata = answers[byte_offset+12:byte_offset+12+rdlength]
         byte_offset = byte_offset + rdlength + 12
         if ans_type == 1:
-            answer["ipv4"] = parse_ipv4(rdata)
+            answer["ipv4"] = list_a_records
+            list_a_records.append(parse_ipv4(rdata))
+            # answer["ipv4"] = parse_ipv4(rdata)
         if ans_type == 5:
             answer["cname"] = parse_cname(data)
         if ans_type == 28:
             answer["ipv6"] = parse_ipv6(rdata)
         if ans_type == 15:
-            print("mx")
-            pass
-            list_mx_records.append(parse_mx(rdata))
+            list_mx_records = parse_mx_dnslib(data)
+            answer["mx"] = list_mx_records
+            break
         if ans_type == 12:
             answer["reverse"] = parse_label_format(rdata)
-        # stuff.(this_answer)
 
     return answer
 
@@ -316,9 +330,9 @@ def create_request_message(host, qtype):
 def runner(dns, host) -> CompleteResult:
     a = query_dns(dns, host, "A")
     aaaa = query_dns(dns, host, "AAAA")
-    # mx = query_dns(dns, host, "MX")
+    mx = query_dns(dns, host, "MX")
 
-    result = {"host": host, **a, **aaaa}
+    result = {"host": host, **a, **aaaa, **mx}
     a = CompleteResult(result)
     return a
 
