@@ -1,8 +1,9 @@
 import tkinter as tk
 import ass2_base as base
 
-DNS_SERVERS = ["8.8.8.8", "9.9.9.9", "1.1.1.1"]
-QUERIES = ["abc.net.au", "uq.edu.au"]
+DNS_SERVERS = ["8.8.8.8", "9.9.9.9", "1.1.1.1", "130.102.71.160"]
+QUERIES = ["abc.net.au", "microsoft.com", "eait.uq.edu.au",
+           "remote.labs.eait.uq.edu.au", "130.102.79.33"]
 
 
 class Presets(tk.Frame):
