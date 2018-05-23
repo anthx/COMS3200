@@ -4,7 +4,8 @@ import socket
 import sys
 import random
 import binascii
-
+import time
+import timeit
 """
 
 You can resolve the IP address using socket routines like “gethostbyname”.
@@ -139,7 +140,7 @@ class Ping(object):
         """
         type = int(8).to_bytes(1, "big")
         code = int(0).to_bytes(1, "big")
-        checksum = b'\x65\xa0'
+        checksum = b'\x60\x1f'
         identifier = b'\xAC\xAC'
         sequence = b'\x00\x01'
         data = binascii.unhexlify("000008090a0b0c0d0e0f1011121314151617001018191a1b1c1d1e1f2021222324252627002028292a2b2c2d2e2f3031323334353637")
@@ -184,10 +185,15 @@ class Ping(object):
             print("open raw socket")
             soc = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname('icmp'))
             soc.setsockopt(socket.SOL_IP, socket.IP_TTL, self._TTL)
+            # soc.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, 5000)
+            soc.settimeout(5)
             print("send")
+            start = time.time()
             soc.sendto(self._ping_packet, address)
             print("receive")
             self._response = bytearray(soc.recv(4096))
+            end = time.time()
+            self._RTT = end - start
             self.handle_response()
         except socket.error as err:
             print("Can't make socket:", err)
@@ -201,9 +207,9 @@ def trace_ping():
         a_ping.generate_packet()
         a_ping.send_recv()
         a_ping.print()
-        print(a_ping.response.type, ttl_incr)
+        print(a_ping.response.type, ttl_incr, a_ping._RTT)
         ttl_incr +=1
-        if a_ping.response == None:
+        if a_ping.response.type == 0:
             break
 
 
