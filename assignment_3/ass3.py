@@ -57,6 +57,7 @@ class Response(object):
         self.type = 0
         self.code = 0
         self._icmp_part = bytearray
+        self.source = ""
 
         # the .recv() method when used with RAW sockets seems to also include
         # IP header.
@@ -70,6 +71,12 @@ class Response(object):
         self._icmp_part = self._response_bytes[ip_header_length:]
         self.type = int(self._icmp_part[0])
         self.code = int(self._icmp_part[1])
+        # this next bit could have been done with a for loop but this is cool
+        # https://stackoverflow.com/questions/3590165/joining-a-list-that-has-integer-values-with-python
+        source = bytearray(self._response_bytes[12:16])
+        source = map(int, source)
+        source = map(str, source)
+        self.source = ".".join(source)
 
 
 class Ping(object):
@@ -79,7 +86,7 @@ class Ping(object):
     def __init__(self, host: str, ttl: int = 64):
         self._host = host
         self._response = bytearray
-        self._RTT = ""
+        self._RTT = 0.0
         self._TTL = ttl
         self._total_length: int = 84
         self._my_ip = ""
@@ -98,6 +105,11 @@ class Ping(object):
         except socket.gaierror:
             print("Couldn't open socket. Exiting")
             sys.exit()
+
+    @property
+    def round_trip_time(self):
+        in_ms:float = self._RTT * 1000
+        return str(round(in_ms, 2)) + " ms"
 
     def ip_header(self) -> bytearray:
         """
@@ -206,8 +218,8 @@ def trace_ping():
         a_ping = Ping("www.abc.net.au", ttl_incr)
         a_ping.generate_packet()
         a_ping.send_recv()
-        a_ping.print()
-        print(a_ping.response.type, ttl_incr, a_ping._RTT)
+        # a_ping.print()
+        print(a_ping.response.type, ttl_incr, a_ping.round_trip_time, a_ping.response.source)
         ttl_incr +=1
         if a_ping.response.type == 0:
             break
