@@ -108,8 +108,11 @@ class Ping(object):
 
     @property
     def round_trip_time(self):
-        in_ms:float = self._RTT * 1000
-        return str(round(in_ms, 2)) + " ms"
+        if self._RTT < 0:
+            return "*"
+        else:
+            in_ms:float = self._RTT * 1000
+            return str(round(in_ms, 2)) + " ms"
 
     def ip_header(self) -> bytearray:
         """
@@ -198,7 +201,7 @@ class Ping(object):
             soc = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname('icmp'))
             soc.setsockopt(socket.SOL_IP, socket.IP_TTL, self._TTL)
             # soc.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, 5000)
-            soc.settimeout(5)
+            soc.settimeout(1)
             print("send")
             start = time.time()
             soc.sendto(self._ping_packet, address)
@@ -207,23 +210,48 @@ class Ping(object):
             end = time.time()
             self._RTT = end - start
             self.handle_response()
+        except socket.timeout:
+            print("timeout")
+            self._RTT = -1
         except socket.error as err:
             print("Can't make socket:", err)
             exit(0)
 
 
-def trace_ping():
+def trace_ping(host):
     ttl_incr = 1
+    total_hops = 0
+    final_rtt = ""
     while True:
-        a_ping = Ping("www.abc.net.au", ttl_incr)
+        a_ping = Ping(host, ttl_incr)
         a_ping.generate_packet()
         a_ping.send_recv()
         # a_ping.print()
         print(a_ping.response.type, ttl_incr, a_ping.round_trip_time, a_ping.response.source)
         ttl_incr +=1
         if a_ping.response.type == 0:
+            total_hops = ttl_incr
+            final_rtt = a_ping.round_trip_time
             break
+        if ttl_incr > 64 and a_ping.response.type != 0:
+            return None
+    return (total_hops, final_rtt)
+
+def normal_ping(host):
+    normal_ping = Ping(host)
+    normal_ping.generate_packet()
+    normal_ping.send_recv()
+    print(normal_ping.round_trip_time)
+    return normal_ping.round_trip_time
+
+
+def program(host):
+    test = normal_ping(host)
+    hops = trace_ping(host)
+    first = normal_ping(host)
+    second = normal_ping(host)
+
 
 
 if __name__ == "__main__":
-    trace_ping()
+    program()

@@ -9,3 +9,4 @@ class Tests(unittest.TestCase):
         a = Response(data)
         self.assertEqual(11, a.type, "Should be Type 11 for TTL Expired")
         self.assertEqual(0, a.code, "Should be Code 0 for TTL Expired")
+        self.assertEqual("10.83.82.1", a.source, "incorrect source")
