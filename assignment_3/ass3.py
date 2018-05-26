@@ -196,7 +196,7 @@ class Ping(object):
         Sends an ICMP echo request and receives the response
         """
         try:
-            address = (socket.gethostbyname(self._host), 0)
+            address = (self._host, 0)
             print("open raw socket")
             soc = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname('icmp'))
             soc.setsockopt(socket.SOL_IP, socket.IP_TTL, self._TTL)
@@ -246,6 +246,7 @@ def normal_ping(host):
 
 
 def program(host):
+    host = socket.gethostbyname(host)
     test = normal_ping(host)
     hops = trace_ping(host)
     first = normal_ping(host)
@@ -254,4 +255,5 @@ def program(host):
 
 
 if __name__ == "__main__":
-    program()
+    host = sys.argv[1]
+    program(host)
