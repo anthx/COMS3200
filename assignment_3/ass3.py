@@ -112,7 +112,7 @@ class Ping(object):
             return "*"
         else:
             in_ms:float = self._RTT * 1000
-            return str(round(in_ms, 2)) + " ms"
+            return round(in_ms, 2)
 
     def ip_header(self) -> bytearray:
         """
@@ -246,11 +246,21 @@ def normal_ping(host):
 
 
 def program(host):
-    host = socket.gethostbyname(host)
-    test = normal_ping(host)
-    hops = trace_ping(host)
-    first = normal_ping(host)
-    second = normal_ping(host)
+    host_ip = ""
+    try:
+        host_ip = socket.gethostbyname(host)
+    except gaierror:
+        print("Can't resolve Hostname")
+    print(host_ip)
+    test = normal_ping(host_ip)
+    if test != "*" and test > -1:    
+        hops = trace_ping(host_ip)
+        first = normal_ping(host_ip)
+        second = normal_ping(host_ip)
+        print(f"Sending 3 pings to {host}, IP {host_ip} \n"
+              f"3 replies received with average of {round((first + second + test)/3, 2)} ms over {hops[0]} hops")
+    else:
+        print(f"Request to {host}, IP {host_ip} timed out")
 
 
 
