@@ -6,6 +6,7 @@ import random
 import binascii
 import time
 import timeit
+import logging
 """
 
 You can resolve the IP address using socket routines like “gethostbyname”.
@@ -197,15 +198,15 @@ class Ping(object):
         """
         try:
             address = (self._host, 0)
-            print("open raw socket")
+            logging.info("open raw socket")
             soc = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname('icmp'))
             soc.setsockopt(socket.SOL_IP, socket.IP_TTL, self._TTL)
             # soc.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, 5000)
             soc.settimeout(1)
-            print("send")
+            logging.info("send")
             start = time.time()
             soc.sendto(self._ping_packet, address)
-            print("receive")
+            logging.info("receive")
             self._response = bytearray(soc.recv(4096))
             end = time.time()
             self._RTT = end - start
@@ -227,7 +228,7 @@ def trace_ping(host):
         a_ping.generate_packet()
         a_ping.send_recv()
         # a_ping.print()
-        print(a_ping.response.type, ttl_incr, a_ping.round_trip_time, a_ping.response.source)
+        logging.info(f"Response Type: {a_ping.response.type}, Step: {ttl_incr}, RTT: {a_ping.round_trip_time}, Source: {a_ping.response.source}")
         ttl_incr +=1
         if a_ping.response.type == 0:
             total_hops = ttl_incr
@@ -237,11 +238,12 @@ def trace_ping(host):
             return None
     return (total_hops, final_rtt)
 
+
 def normal_ping(host):
     normal_ping = Ping(host)
     normal_ping.generate_packet()
     normal_ping.send_recv()
-    print(normal_ping.round_trip_time)
+    logging.info(f"ping time: {normal_ping.round_trip_time}")
     return normal_ping.round_trip_time
 
 
@@ -249,21 +251,25 @@ def program(host):
     host_ip = ""
     try:
         host_ip = socket.gethostbyname(host)
-    except gaierror:
+    except socket.gaierror:
         print("Can't resolve Hostname")
-    print(host_ip)
+    logging.info(host_ip)
     test = normal_ping(host_ip)
     if test != "*" and test > -1:    
         hops = trace_ping(host_ip)
+        if hops == None:
+            print("Trace route timed out")
+            exit()
         first = normal_ping(host_ip)
         second = normal_ping(host_ip)
+        print("Ping-Count by Anthony Carrick")
         print(f"Sending 3 pings to {host}, IP {host_ip} \n"
-              f"3 replies received with average of {round((first + second + test)/3, 2)} ms over {hops[0]} hops")
+              f"4 replies received with average of {round((first + second + test + hops[1])/4, 2)} ms ({first}, {second}, {test}, {hops[1]}) over {hops[0]} hops")
     else:
         print(f"Request to {host}, IP {host_ip} timed out")
 
 
-
 if __name__ == "__main__":
+    logging.basicConfig(filename='ping_trace.log', level=logging.DEBUG, filemode='w')
     host = sys.argv[1]
     program(host)
