@@ -5,7 +5,6 @@ import sys
 import random
 import binascii
 import time
-import timeit
 import logging
 """
 
@@ -46,6 +45,8 @@ def ipv4_to_bytearray(ip: str):
 
 
 def calc_checksum(data: bytearray) -> bytes:
+    for word in range(0, len(data), 2):
+        pass
     pass
 
 
@@ -212,7 +213,7 @@ class Ping(object):
             self._RTT = end - start
             self.handle_response()
         except socket.timeout:
-            print("timeout")
+            # print("timeout")
             self._RTT = -1
         except socket.error as err:
             print("Can't make socket:", err)
@@ -228,14 +229,22 @@ def trace_ping(host):
         a_ping.generate_packet()
         a_ping.send_recv()
         # a_ping.print()
-        logging.info(f"Response Type: {a_ping.response.type}, Step: {ttl_incr}, RTT: {a_ping.round_trip_time}, Source: {a_ping.response.source}")
-        ttl_incr +=1
-        if a_ping.response.type == 0:
-            total_hops = ttl_incr
-            final_rtt = a_ping.round_trip_time
-            break
-        if ttl_incr > 64 and a_ping.response.type != 0:
-            return None
+        try:
+            logging.info(f"Response Type: {a_ping.response.type}, Step: {ttl_incr}, RTT: {a_ping.round_trip_time}, Source: {a_ping.response.source}")
+        except AttributeError:
+            logging.info("No response this time")
+
+        try:
+            if a_ping.response.type == 0:
+                total_hops = ttl_incr
+                final_rtt = a_ping.round_trip_time
+                break
+            if ttl_incr > 64 and a_ping.response.type != 0:
+                return None
+        except AttributeError:
+            pass
+        ttl_incr += 1
+
     return (total_hops, final_rtt)
 
 
@@ -264,7 +273,7 @@ def program(host):
         second = normal_ping(host_ip)
         print("Ping-Count by Anthony Carrick")
         print(f"Sending 3 pings to {host}, IP {host_ip} \n"
-              f"4 replies received with average of {round((first + second + test + hops[1])/4, 2)} ms ({first}, {second}, {test}, {hops[1]}) over {hops[0]} hops")
+              f"4 replies received with average of {round((first + second + test + hops[1])/4, 2)} ms ({test}, {first}, {second}, {hops[1]}) over {hops[0]} hops")
     else:
         print(f"Request to {host}, IP {host_ip} timed out")
 
