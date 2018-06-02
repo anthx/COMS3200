@@ -45,9 +45,22 @@ def ipv4_to_bytearray(ip: str):
 
 
 def calc_checksum(data: bytearray) -> bytes:
-    for word in range(0, len(data), 2):
-        pass
-    pass
+    result = "0000000000000000"
+    for i, pos in enumerate(range(0, len(data), 2)):
+        # print(len(result), result)
+        a = BitArray(data[pos:pos+2]).bin
+        # b = BitArray(data[pos+2:pos+4]).bin
+        result = bin(int(a, 2) + int(result, 2))
+        print(len(result), result)
+        if result[2:].__len__() == 17:
+            result = int(result[2:], 2) + int(result[2], 2)
+            result = bin(result)
+            print(len(result), result)
+    result = int(result, 2)
+    # result = bin(result)
+    result = ~result
+    result = bytes(result)
+    return result
 
 
 class Response(object):
@@ -157,10 +170,10 @@ class Ping(object):
         """
         type = int(8).to_bytes(1, "big")
         code = int(0).to_bytes(1, "big")
-        checksum = b'\x60\x1f'
+        checksum = b'\x77\x94'
         identifier = b'\xAC\xAC'
         sequence = b'\x00\x01'
-        data = binascii.unhexlify("000008090a0b0c0d0e0f1011121314151617001018191a1b1c1d1e1f2021222324252627002028292a2b2c2d2e2f3031323334353637")
+        data = bytes('DATA DATA DATA', 'utf-8')
 
         result = bytearray()
         result.extend(type)

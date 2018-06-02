@@ -1,6 +1,7 @@
 import unittest
 import binascii
 from . ass3 import Response
+from . ass3 import calc_checksum
 
 
 class Tests(unittest.TestCase):
@@ -10,3 +11,15 @@ class Tests(unittest.TestCase):
         self.assertEqual(11, a.type, "Should be Type 11 for TTL Expired")
         self.assertEqual(0, a.code, "Should be Code 0 for TTL Expired")
         self.assertEqual("10.83.82.1", a.source, "incorrect source")
+
+    def atest_checksum(self):
+        data = bytearray(b'\x08\x00\x00\x00\xac\xac\x00\x01\x00\x00\x08\t\n\x0b\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x00\x10\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !"#$%&\'\x00 ()*+,-./01234567')
+        actual = calc_checksum(data)
+        expected = b'\x60\x1f'
+        self.assertEqual(expected, actual, "checksum doesn't match")
+
+    def test_checksum(self):
+        data = bytearray(b'\x45\x00\x00\x3c\x1c\x46\x40\x00\x40\x06\x00\00\xac\x10\x0a\x63\xac\x10\x0a\x0c')
+        actual = calc_checksum(data)
+        expected = b'\xb1\xe6'
+        self.assertEqual(expected, actual, "checksum doesn't match")
