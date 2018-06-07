@@ -1,5 +1,6 @@
 import tkinter as tk
 import ass2_base as base
+#Anthony Carrick
 
 DNS_SERVERS = ["8.8.8.8", "9.9.9.9", "1.1.1.1", "130.102.71.160"]
 QUERIES = ["abc.net.au", "microsoft.com", "eait.uq.edu.au",
